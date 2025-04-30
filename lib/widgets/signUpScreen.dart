@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:sign_up/core/constants/view_constants.dart';
 import 'package:sign_up/core/constants/app_constants.dart';
@@ -7,6 +5,10 @@ import 'package:sign_up/config/theme/dark.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sign_up/widgets/homeScreen.dart';
+import 'package:sign_up/viewmodels/validators.dart';
+import 'package:sign_up/viewmodels/utility.dart';
+import 'package:sign_up/widgets/reusableFormField.dart';
+import 'package:sign_up/assets/appAssests/class.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -25,7 +27,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   void initState() {
     super.initState();
-    loadUserPreferences();
+    Utility.loadUserPreferences(
+      context,
+      emailController,
+      passwordController,
+      confirmPasswordController,
+      NavigatorToHomeScreen,
+    );
   }
 
   @override
@@ -36,55 +44,11 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your email';
-    }
-    if (!RegExp(r'\S+@\S+\.\S+').hasMatch(value)) {
-      return 'Please enter a valid email';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your password';
-    }
-    if (value.length < 8) {
-      return 'Password must be at least 8 characters long';
-    }
-    return null;
-  }
-
-  String? _validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter your confirm password';
-    }
-    if (value != passwordController.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
-  void loadUserPreferences() async {
-    final prefs = await SharedPreferences.getInstance();
-    emailController.text = prefs.getString('email') ?? '';
-    passwordController.text = prefs.getString('password') ?? '';
-    confirmPasswordController.text = prefs.getString('password') ?? '';
-    if (emailController.text != '' && passwordController.text != '') {
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(builder: (context) => HomeScreen()),
-        (route) => false,
-      );
-    }
-  }
-
   Future<void> saveUserPreferences() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('email', emailController.text);
     await prefs.setString('password', passwordController.text);
-    print(
+    debugPrint(
       'User preferences saved ${emailController.text} ${passwordController.text}',
     );
 
@@ -97,12 +61,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
   void submitForm() {
     if (formKey.currentState!.validate()) {
       formKey.currentState!.save();
-      print(
+      debugPrint(
         'Form with valid credentials submitted ${emailController.text} ${passwordController.text} ${confirmPasswordController.text}',
       );
       saveUserPreferences();
     } else {
-      print('Form with invalid credentials');
+      debugPrint('Form with invalid credentials');
     }
   }
 
@@ -114,7 +78,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   Widget _body() {
     return SafeArea(
       child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 20),
+        padding: EdgeInsets.symmetric(horizontal: AppConstants.gap20Px),
         child: Form(
           key: formKey,
           child: SingleChildScrollView(
@@ -127,7 +91,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.only(top: 20),
+                    padding: const EdgeInsets.only(top: AppConstants.gap20Px),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -154,126 +118,54 @@ class _SignUpScreenState extends State<SignUpScreen> {
                           ],
                         ),
                         SizedBox(height: AppConstants.gap16Px * 2),
-                        TextFormField(
+                        CustomTextFormField(
                           controller: emailController,
-                          validator: _validateEmail,
-                          style: TextStyle(color: DarkTheme.textColor),
-                          onTapOutside: (value) {
-                            FocusScope.of(context).unfocus();
-                          },
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 28,
-                              vertical: 20,
-                            ),
-                            hintText: ViewConstants.signUpEmail,
-                            hintStyle: TextStyle(
-                              color: DarkTheme.textGreyColor,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: DarkTheme.textColor,
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
+                          hintText: ViewConstants.signUpEmail,
+                          validator: Validators.validateEmail,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppConstants.gap14Px * 2,
+                            vertical: AppConstants.gap14Px * 2,
                           ),
                         ),
                         SizedBox(height: AppConstants.gap12Px),
-                        TextFormField(
-                          obscureText: isPasswordVisible,
+                        CustomTextFormField(
                           controller: passwordController,
-                          validator: _validatePassword,
-                          onTapOutside: (value) {
-                            FocusScope.of(context).unfocus();
+                          hintText: ViewConstants.signUpPassword,
+                          validator: Validators.validatePassword,
+                          obscureText: !isPasswordVisible,
+                          hasToggleVisibility: true,
+                          isTextVisible: isPasswordVisible,
+                          onToggleVisibility: () {
+                            setState(() {
+                              isPasswordVisible = !isPasswordVisible;
+                            });
                           },
-                          style: TextStyle(color: DarkTheme.textColor),
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 28,
-                              vertical: 20,
-                            ),
-                            hintText: ViewConstants.signUpPassword,
-                            hintStyle: TextStyle(
-                              color: DarkTheme.textGreyColor,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  isPasswordVisible = !isPasswordVisible;
-                                });
-                              },
-                              icon: Icon(
-                                isPasswordVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: DarkTheme.textColor,
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppConstants.gap14Px * 2,
+                            vertical: AppConstants.gap20Px,
                           ),
                         ),
                         SizedBox(height: AppConstants.gap12Px),
-                        TextFormField(
+                        CustomTextFormField(
                           controller: confirmPasswordController,
-                          validator: _validateConfirmPassword,
-                          style: TextStyle(color: DarkTheme.textColor),
-                          obscureText: isConfirmPasswordVisible,
-                          onTapOutside: (value) {
-                            FocusScope.of(context).unfocus();
+                          hintText: ViewConstants.signUpConfirmPassword,
+                          validator:
+                              (value) => Validators.validateConfirmPassword(
+                                value,
+                                passwordController,
+                              ),
+                          obscureText: !isConfirmPasswordVisible,
+                          hasToggleVisibility: true,
+                          isTextVisible: isConfirmPasswordVisible,
+                          onToggleVisibility: () {
+                            setState(() {
+                              isConfirmPasswordVisible =
+                                  !isConfirmPasswordVisible;
+                            });
                           },
-                          decoration: InputDecoration(
-                            contentPadding: EdgeInsets.symmetric(
-                              horizontal: 28,
-                              vertical: 20,
-                            ),
-                            hintText: ViewConstants.signUpConfirmPassword,
-                            hintStyle: TextStyle(
-                              color: DarkTheme.textGreyColor,
-                            ),
-                            suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  isConfirmPasswordVisible =
-                                      !isConfirmPasswordVisible;
-                                });
-                              },
-                              icon: Icon(
-                                isConfirmPasswordVisible
-                                    ? Icons.visibility
-                                    : Icons.visibility_off,
-                              ),
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: BorderSide(
-                                color: DarkTheme.textColor,
-                              ),
-                              borderRadius: BorderRadius.circular(
-                                AppConstants.gap8Px,
-                              ),
-                            ),
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: AppConstants.gap14Px * 2,
+                            vertical: AppConstants.gap20Px,
                           ),
                         ),
                         SizedBox(height: AppConstants.gap16Px * 2),
@@ -316,7 +208,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.gap16Px,
+                        ),
                         child: Text(
                           ViewConstants.signUpOr,
                           style: TextStyle(
@@ -356,9 +250,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SvgPicture.asset(
-                                'assets/icons/ic_round-apple.svg',
-                                width: 30,
-                                height: 30,
+                                AppAssets.appleIcon,
+                                width: AppConstants.font14Px * 2,
+                                height: AppConstants.font14Px * 2,
                               ),
                               SizedBox(width: AppConstants.gap8Px),
                               const Text(
@@ -394,9 +288,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               SvgPicture.asset(
-                                'assets/icons/Google.svg',
-                                width: 20,
-                                height: 20,
+                                AppAssets.googleIcon,
+                                width: AppConstants.font20Px,
+                                height: AppConstants.font20Px,
                               ),
                               SizedBox(width: AppConstants.gap10Px),
                               const Text(
@@ -428,5 +322,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
         ),
       ),
     );
+  }
+
+  void NavigatorToHomeScreen() {
+    if (emailController.text != '' && passwordController.text != '') {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => HomeScreen()),
+        (route) => false,
+      );
+    }
   }
 }

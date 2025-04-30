@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sign_up/widgets/signUpScreen.dart';
+import 'package:sign_up/core/constants/view_constants.dart';
+import 'package:sign_up/viewmodels/utility.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,18 +13,10 @@ class HomeScreen extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text('Welcome to the Home Screen'),
+            Text(ViewConstants.welcomeToTheHomeScreen),
             TextButton(
-              onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                prefs.clear();
-                Navigator.pushAndRemoveUntil(
-                  context,
-                  MaterialPageRoute(builder: (context) => SignUpScreen()),
-                  (route) => false,
-                );
-              },
-              child: Text('Logout'),
+              onPressed: () => Utility.logoutFunction(context),
+              child: Text(ViewConstants.logout),
             ),
           ],
         ),
